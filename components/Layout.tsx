@@ -193,7 +193,7 @@ const Layout: React.FC<LayoutProps> = ({
             )}
           </div>
           <div className="p-4 border-t border-gray-100 bg-gray-50">
-             <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest">© 2025 Dr. N.G.P. IT</p>
+             <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest"></p>
           </div>
         </aside>
 
