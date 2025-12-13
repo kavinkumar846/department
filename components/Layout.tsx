@@ -192,9 +192,6 @@ const Layout: React.FC<LayoutProps> = ({
               </>
             )}
           </div>
-          <div className="p-4 border-t border-gray-100 bg-gray-50">
-             <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest"></p>
-          </div>
         </aside>
 
         {/* Overlay for mobile */}

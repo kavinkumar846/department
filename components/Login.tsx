@@ -79,29 +79,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </header>
   
       {/* Main Content */}
-      <div className="flex-1 bg-[#002147] relative flex items-center justify-center p-6 md:p-12 overflow-hidden">
+      <div className="flex-1 bg-[#002147] relative flex items-center justify-center p-6 md:p-12 overflow-y-auto md:overflow-hidden">
           {/* Background Decorative Elements */}
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#fdb913]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
           
-          <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center relative z-10">
+          <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-24 items-center relative z-10">
               {/* Left Side Content */}
-              <div className="space-y-8 text-white lg:pr-12 text-center lg:text-left order-2 lg:order-1">
+              <div className="space-y-6 md:space-y-8 text-white lg:pr-12 text-center lg:text-left">
                   <div className="inline-flex items-center gap-3 mb-2 mx-auto lg:mx-0">
                       <span className="h-0.5 w-12 bg-[#fdb913]"></span>
                       <span className="text-[#fdb913] font-bold tracking-[0.2em] uppercase text-sm">Official Portal</span>
                   </div>
-                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight">
                       Department <br />
                       <span className="text-[#00aaff]">Management System</span>
                   </h1>
-                  <p className="text-blue-100/80 text-lg max-w-lg leading-relaxed mx-auto lg:mx-0">
+                  <p className="text-blue-100/80 text-base md:text-lg max-w-lg leading-relaxed mx-auto lg:mx-0">
                       A comprehensive platform for students, staff, and administration to manage academic records, attendance, and resources efficiently.
                   </p>
               </div>
   
               {/* Right Side Login Card */}
-              <div className="flex justify-center lg:justify-end order-1 lg:order-2">
+              <div className="flex justify-center lg:justify-end pb-8 lg:pb-0">
                   <div className="bg-white rounded-3xl p-8 md:p-10 shadow-2xl shadow-black/20 w-full max-w-[440px] relative backdrop-blur-sm">
                       {/* Solid Yellow Top Border */}
                       <div className="absolute top-0 left-0 w-full h-2 bg-[#fdb913] rounded-t-3xl"></div>

@@ -19,15 +19,25 @@ let localSettings = {
 type SettingsListener = (settings: typeof localSettings) => void;
 const settingsListeners: SettingsListener[] = [];
 
+// Helper to force timeout on Supabase calls to ensure fallback works quickly
+const withTimeout = (promise: Promise<any>, ms = 2000) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+    ]);
+};
+
 export const api = {
   // Users
   async getUsers(): Promise<User[]> {
     try {
-      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: true });
+      const { data, error } = await withTimeout(
+          supabase.from('users').select('*').order('id', { ascending: true })
+      );
       if (error) throw error;
       return data as User[];
     } catch (error) {
-      console.warn('API: Using local mock users');
+      console.warn('API: Using local mock users (Timeout or Error)');
       return localUsers;
     }
   },
@@ -35,7 +45,9 @@ export const api = {
   async createUser(user: Omit<User, 'id'>): Promise<User | null> {
     try {
       // Try DB first
-      const { data, error } = await supabase.from('users').insert([user]).select().single();
+      const { data, error } = await withTimeout(
+          supabase.from('users').insert([user]).select().single()
+      );
       if (!error && data) return data as User;
       throw error;
     } catch (error) {
@@ -48,7 +60,7 @@ export const api = {
 
   async deleteUser(id: number): Promise<boolean> {
     try {
-      const { error } = await supabase.from('users').delete().eq('id', id);
+      const { error } = await withTimeout(supabase.from('users').delete().eq('id', id));
       if (error) throw error;
       return true;
     } catch (error) {
@@ -59,21 +71,25 @@ export const api = {
   
   async getUserRole(email: string): Promise<Role | null> {
     try {
-      const { data, error } = await supabase.from('users').select('role').eq('email', email).maybeSingle(); 
+      const { data, error } = await withTimeout(
+          supabase.from('users').select('role').eq('email', email).maybeSingle()
+      ); 
       if (!error && data) return data.role as Role;
-      
-      // Local fallback
-      const localUser = localUsers.find(u => u.email === email);
-      return localUser ? localUser.role : null;
     } catch (error) {
-      return null;
+      // Fall through to local check
     }
+    
+    // Local fallback
+    const localUser = localUsers.find(u => u.email === email);
+    return localUser ? localUser.role : null;
   },
 
   // Students
   async getStudents(): Promise<Student[]> {
     try {
-      const { data, error } = await supabase.from('students').select('*').order('id', { ascending: true });
+      const { data, error } = await withTimeout(
+          supabase.from('students').select('*').order('id', { ascending: true })
+      );
       if (error) throw error;
       return data.map((s: any) => ({
         ...s,
@@ -93,7 +109,7 @@ export const api = {
       const dbUpdates: any = { ...updates };
       if (updates.rollNo) { dbUpdates.roll_no = updates.rollNo; delete dbUpdates.rollNo; }
       
-      const { error } = await supabase.from('students').update(dbUpdates).eq('id', id);
+      const { error } = await withTimeout(supabase.from('students').update(dbUpdates).eq('id', id));
       if (error) throw error;
       return true;
     } catch (error) {
@@ -104,26 +120,28 @@ export const api = {
   
   async getStudentProfile(email: string): Promise<any> {
      try {
-       const { data, error } = await supabase.from('students').select('*').eq('email', email).maybeSingle();
+       const { data, error } = await withTimeout(
+           supabase.from('students').select('*').eq('email', email).maybeSingle()
+       );
        if (data) return { ...data, rollNo: data.roll_no || data.rollNo };
-
-       // Fallback logic
-       const student = localStudents.find(s => s.email === email) || localStudents.find(s => s.name.toLowerCase().includes('arun')); // Fallback for demo
-       if (student) return student;
-
-       const user = localUsers.find(u => u.email === email);
-       if (user) {
-          return {
-             name: user.name,
-             rollNo: 'N/A',
-             year: user.year || '1',
-             internal1: 0, internal2: 0, attendance: 0, cgpa: 0
-          };
-       }
-       return null;
      } catch (error) {
-       return null;
+       // Fall through to local
      }
+
+     // Fallback logic
+     const student = localStudents.find(s => s.email === email) || localStudents.find(s => s.name.toLowerCase().includes('arun')); // Fallback for demo
+     if (student) return student;
+
+     const user = localUsers.find(u => u.email === email);
+     if (user) {
+        return {
+           name: user.name,
+           rollNo: 'N/A',
+           year: user.year || '1',
+           internal1: 0, internal2: 0, attendance: 0, cgpa: 0
+        };
+     }
+     return null;
   },
 
   // Subjects & Marks APIs (New)
@@ -202,7 +220,9 @@ export const api = {
   // Certificates
   async getCertificates(): Promise<Certificate[]> {
     try {
-      const { data, error } = await supabase.from('certificates').select('*').order('id', { ascending: false });
+      const { data, error } = await withTimeout(
+          supabase.from('certificates').select('*').order('id', { ascending: false })
+      );
       if (error) throw error;
       return data.map((c: any) => ({
           ...c,
@@ -216,7 +236,9 @@ export const api = {
 
   async updateCertificateStatus(id: number, status: 'Approved' | 'Rejected'): Promise<boolean> {
     try {
-      const { error } = await supabase.from('certificates').update({ status }).eq('id', id);
+      const { error } = await withTimeout(
+          supabase.from('certificates').update({ status }).eq('id', id)
+      );
       if (error) throw error;
       return true;
     } catch (error) {
@@ -228,7 +250,9 @@ export const api = {
   // Yearly Stats
   async getYearlyStats(year: number): Promise<YearlyStats | null> {
     try {
-      const { data, error } = await supabase.from('yearly_stats').select('data').eq('year', year).maybeSingle();
+      const { data, error } = await withTimeout(
+          supabase.from('yearly_stats').select('data').eq('year', year).maybeSingle()
+      );
       if (!error && data) return data.data as YearlyStats;
       throw error;
     } catch (error) {
