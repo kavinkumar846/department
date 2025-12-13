@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload, FileText, TrendingUp, Calendar, Trophy, Medal, Star, BookOpen } from 'lucide-react';
 import { api } from '../services/api';
