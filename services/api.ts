@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabase';
 import { User, Student, Certificate, YearlyStats, Role, Achievement, AchievementCategory, LeaderboardEntry, Subject, StudentSubjectMark } from '../types';
 import { mockAchievements as initialMockAchievements, achievementCategories, mockLeaderboard, initialUsers, initialStudents, initialCertificates, mockSubjects, mockMarks } from './mockData';
