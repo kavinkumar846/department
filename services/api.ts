@@ -20,7 +20,8 @@ type SettingsListener = (settings: typeof localSettings) => void;
 const settingsListeners: SettingsListener[] = [];
 
 // Helper to force timeout on Supabase calls to ensure fallback works quickly
-const withTimeout = (promise: Promise<any>, ms = 2000) => {
+// Changed signature to 'any' to accept Supabase PostgrestBuilder which is Thenable but not strict Promise
+const withTimeout = (promise: any, ms = 2000) => {
     return Promise.race([
         promise,
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))

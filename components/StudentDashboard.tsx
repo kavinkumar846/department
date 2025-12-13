@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, TrendingUp, Calendar, CloudUpload, Trophy, Medal, Star, BookOpen } from 'lucide-react';
+import { Upload, FileText, TrendingUp, Calendar, Trophy, Medal, Star, BookOpen } from 'lucide-react';
 import { api } from '../services/api';
 import { Achievement, AchievementCategory, LeaderboardEntry, StudentSubjectMark } from '../types';
 
@@ -200,7 +200,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, a
               <div className="p-8">
                   <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-full flex items-center justify-center">
-                          <CloudUpload className="w-5 h-5" />
+                          <Upload className="w-5 h-5" />
                       </div>
                       <div>
                           <h3 className="text-lg font-bold text-gray-900">Upload Achievement</h3>
