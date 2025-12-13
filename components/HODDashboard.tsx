@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
-import { Users, BookOpen, CheckCircle, Briefcase, TrendingUp, Award, Download, Filter, Star, AlertCircle, Mail, ArrowLeft, GraduationCap, ChevronRight, Trophy, FileSpreadsheet, ArrowRight } from 'lucide-react';
+import { Users, BookOpen, CheckCircle, Briefcase, TrendingUp, TrendingDown, Award, Download, Filter, Star, AlertCircle, Mail, ArrowLeft, GraduationCap, ChevronRight, Trophy, FileSpreadsheet, ArrowRight, Search, ChevronDown, Check, UserCog, Library } from 'lucide-react';
 import { api } from '../services/api';
 import { generateMockData } from '../services/mockData';
 import { YearlyStats, LeaderboardEntry, Student } from '../types';
@@ -27,13 +27,38 @@ const HODDashboard: React.FC<HODDashboardProps> = ({ selectedYear, onYearChange 
   const [students, setStudents] = useState<Student[]>([]);
   const [overallLeaderboard, setOverallLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardFilter, setLeaderboardFilter] = useState<string>('All');
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
+  const [leaderboardSort, setLeaderboardSort] = useState<'desc' | 'asc'>('desc');
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  
+  const [overviewStats, setOverviewStats] = useState({
+    students: 0,
+    staff: 0,
+    courses: 0,
+    subjects: 0
+  });
 
-  // Fetch Overall Leaderboard for Overview Page
+  // Fetch Overall Leaderboard & Stats for Overview Page
   useEffect(() => {
       if (!selectedYear) {
           const fetchOverall = async () => {
               const lb = await api.getLeaderboard('All');
               setOverallLeaderboard(lb);
+
+              // Calculate Overview Stats
+              let totalCourses = 0;
+              
+              for (let i = 1; i <= 4; i++) {
+                  const subs = await api.getSubjectsByYear(i.toString());
+                  totalCourses += subs.length;
+              }
+
+              setOverviewStats({
+                  students: 500,
+                  staff: 20,
+                  courses: totalCourses,
+                  subjects: totalCourses * 4 // Estimated metric for Subjects/Modules
+              });
           };
           fetchOverall();
       }
@@ -142,6 +167,49 @@ const HODDashboard: React.FC<HODDashboardProps> = ({ selectedYear, onYearChange 
                   >
                       <FileSpreadsheet className="w-4 h-4" /> Export Excel
                   </button>
+              </div>
+
+              {/* Overview Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                      <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                          <Users className="w-7 h-7" />
+                      </div>
+                      <div>
+                          <p className="text-sm font-medium text-gray-500">Total Students</p>
+                          <h3 className="text-2xl font-extrabold text-gray-900">{overviewStats.students}</h3>
+                      </div>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                      <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                          <UserCog className="w-7 h-7" />
+                      </div>
+                      <div>
+                           <p className="text-sm font-medium text-gray-500">Total Staff</p>
+                           <h3 className="text-2xl font-extrabold text-gray-900">{overviewStats.staff}</h3>
+                      </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                      <div className="w-14 h-14 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                          <BookOpen className="w-7 h-7" />
+                      </div>
+                      <div>
+                           <p className="text-sm font-medium text-gray-500">Courses</p>
+                           <h3 className="text-2xl font-extrabold text-gray-900">{overviewStats.courses}</h3>
+                      </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                      <div className="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                          <Library className="w-7 h-7" />
+                      </div>
+                      <div>
+                           <p className="text-sm font-medium text-gray-500">Subjects</p>
+                           <h3 className="text-2xl font-extrabold text-gray-900">{overviewStats.subjects}</h3>
+                      </div>
+                  </div>
               </div>
 
               {/* Big Buttons Grid */}
@@ -301,6 +369,15 @@ const HODDashboard: React.FC<HODDashboardProps> = ({ selectedYear, onYearChange 
     { name: 'B+', value: data.cgpa.bPlus }, { name: 'B', value: data.cgpa.b },
     { name: 'C', value: data.cgpa.c }, { name: 'F', value: data.cgpa.f }
   ] : [];
+
+  const filteredLeaderboardData = leaderboard.filter(l => 
+    l.student_name.toLowerCase().includes(leaderboardSearch.toLowerCase()) || 
+    l.roll_no.toLowerCase().includes(leaderboardSearch.toLowerCase())
+  ).sort((a, b) => {
+    return leaderboardSort === 'desc' 
+        ? b.total_points - a.total_points 
+        : a.total_points - b.total_points;
+  });
 
   const StatCard = ({ title, value, icon: Icon }: any) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start justify-between hover:shadow-md transition-shadow">
@@ -554,63 +631,138 @@ const HODDashboard: React.FC<HODDashboardProps> = ({ selectedYear, onYearChange 
       )}
 
       {(activeTab === 'Leaderboards' || activeTab === 'TopPerformers') && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+        <div className="space-y-6">
+            {/* Header and Filter */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h3 className="font-bold text-gray-900 text-lg">
                         {activeTab === 'TopPerformers' ? 'Department Top Performers' : `Year ${selectedYear} Leaderboard`}
                     </h3>
                     <p className="text-gray-500 text-sm">Based on accumulated achievement points</p>
                 </div>
-            </div>
-            <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-                        <tr>
-                            <th className="px-6 py-4">Rank</th>
-                            <th className="px-6 py-4">Student</th>
-                            <th className="px-6 py-4">Year</th>
-                            <th className="px-6 py-4 text-right">Points</th>
-                            <th className="px-6 py-4 text-center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {leaderboard.length > 0 ? (
-                            leaderboard.map((student, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                            idx === 0 ? 'bg-yellow-100 text-yellow-700' :
-                                            idx === 1 ? 'bg-gray-100 text-gray-700' :
-                                            idx === 2 ? 'bg-orange-100 text-orange-700' :
-                                            'text-gray-500'
-                                        }`}>
-                                            {student.rank}
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                    {/* Sort Dropdown */}
+                    <div className="relative z-20">
+                        <button 
+                            onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                            className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:border-violet-300 hover:bg-violet-50/50 transition-all shadow-sm"
+                        >
+                            {leaderboardSort === 'desc' ? (
+                                <>
+                                    <TrendingUp className="w-4 h-4 text-violet-600 shrink-0" />
+                                    <span className="text-violet-900">High to Low</span>
+                                </>
+                            ) : (
+                                <>
+                                    <TrendingDown className="w-4 h-4 text-orange-600 shrink-0" />
+                                    <span className="text-orange-900">Low to High</span>
+                                </>
+                            )}
+                            <ChevronDown className={`w-4 h-4 text-gray-400 ml-2 transition-transform duration-200 ${isSortDropdownOpen ? 'rotate-180' : ''} shrink-0`} />
+                        </button>
+
+                        {isSortDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)}></div>
+                                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden p-1 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="px-3 py-2 text-[10px] uppercase font-bold text-gray-400 tracking-wider">Sort Order</div>
+                                    <button
+                                        onClick={() => { setLeaderboardSort('desc'); setIsSortDropdownOpen(false); }}
+                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors ${
+                                            leaderboardSort === 'desc' ? 'bg-violet-50 text-violet-700' : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${leaderboardSort === 'desc' ? 'bg-white shadow-sm text-violet-600' : 'bg-gray-100 text-gray-500'}`}>
+                                            <TrendingUp className="w-4 h-4" />
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <div className="font-semibold text-gray-900">{student.student_name}</div>
-                                            <div className="text-xs text-gray-500">{student.roll_no}</div>
+                                        High to Low
+                                        {leaderboardSort === 'desc' && <Check className="w-4 h-4 ml-auto text-violet-600" />}
+                                    </button>
+                                    <button
+                                        onClick={() => { setLeaderboardSort('asc'); setIsSortDropdownOpen(false); }}
+                                        className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold flex items-center gap-3 transition-colors ${
+                                            leaderboardSort === 'asc' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${leaderboardSort === 'asc' ? 'bg-white shadow-sm text-orange-600' : 'bg-gray-100 text-gray-500'}`}>
+                                            <TrendingDown className="w-4 h-4" />
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{student.year_level}</td>
-                                    <td className="px-6 py-4 text-right font-bold text-violet-600">{student.total_points}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        {idx < 3 && (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
-                                                <Star className="w-3 h-3 mr-1" /> Elite
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr><td colSpan={5} className="text-center py-8 text-gray-400">No data available</td></tr>
+                                        Low to High
+                                        {leaderboardSort === 'asc' && <Check className="w-4 h-4 ml-auto text-orange-600" />}
+                                    </button>
+                                </div>
+                            </>
                         )}
-                    </tbody>
-                </table>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative flex-1 md:w-64 w-full">
+                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                         <input 
+                            type="text" 
+                            placeholder="Search student..." 
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-violet-500 transition-all text-sm"
+                            value={leaderboardSearch}
+                            onChange={(e) => setLeaderboardSearch(e.target.value)}
+                         />
+                    </div>
+                </div>
             </div>
+
+            {/* Single Column List Layout (Strict Top-to-Bottom) */}
+            {filteredLeaderboardData.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                    {filteredLeaderboardData.map((student, idx) => (
+                        <div key={idx} className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                             {/* Top Stripe for Ranking */}
+                             <div className={`absolute top-0 left-0 w-full h-1 ${
+                                 student.rank === 1 ? 'bg-yellow-400' :
+                                 student.rank === 2 ? 'bg-gray-400' :
+                                 student.rank === 3 ? 'bg-orange-400' :
+                                 'bg-purple-400'
+                             }`}></div>
+                             
+                             <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                     <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
+                                        student.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                        student.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                                        student.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                                        'bg-purple-100 text-purple-700'
+                                     }`}>
+                                        {student.rank}
+                                     </div>
+                                     <div>
+                                        <h4 className="font-bold text-gray-900 text-lg leading-tight">{student.student_name}</h4>
+                                        <p className="text-sm text-gray-500">{student.roll_no}</p>
+                                     </div>
+                                </div>
+                                
+                                <div className="text-right">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Total Points</span>
+                                    <span className="text-3xl font-extrabold text-violet-600">{student.total_points}</span>
+                                </div>
+                             </div>
+
+                             <div className="flex justify-end mt-4 pt-4 border-t border-gray-50">
+                                {student.rank <= 3 ? (
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-violet-100 text-violet-700">
+                                       <Star className="w-3 h-3 mr-1 fill-current" /> Elite
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-500">
+                                       Member
+                                    </span>
+                                )}
+                             </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-200">
+                    <p className="text-gray-400 italic">No students found matching your search.</p>
+                </div>
+            )}
         </div>
       )}
     </div>

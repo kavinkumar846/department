@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, LogOut, LayoutDashboard, Users, UserCog, FileText, CheckCircle, Upload, Calendar } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, Users, UserCog, FileText, CheckCircle, Upload, Calendar, Clock } from 'lucide-react';
 import { Role } from '../types';
 import { api } from '../services/api';
 
@@ -11,10 +11,10 @@ interface LayoutProps {
   email: string;
   selectedYear?: number | null;
   onYearSelect?: (year: number | null) => void;
-  studentActiveTab?: 'Dashboard' | 'Upload' | 'Leaderboard';
-  onStudentNavigate?: (tab: 'Dashboard' | 'Upload' | 'Leaderboard') => void;
-  staffActiveTab?: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION';
-  onStaffNavigate?: (tab: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION') => void;
+  studentActiveTab?: 'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave';
+  onStudentNavigate?: (tab: 'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave') => void;
+  staffActiveTab?: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION' | 'LEAVE';
+  onStaffNavigate?: (tab: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION' | 'LEAVE') => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -173,6 +173,12 @@ const Layout: React.FC<LayoutProps> = ({
                   active={staffActiveTab === 'VERIFICATION'}
                   onClick={() => onStaffNavigate('VERIFICATION')}
                 />
+                <NavItem 
+                  label="Leave Requests" 
+                  icon={Clock} 
+                  active={staffActiveTab === 'LEAVE'}
+                  onClick={() => onStaffNavigate('LEAVE')}
+                />
               </>
             )}
             {userRole === 'Student' && onStudentNavigate && (
@@ -182,6 +188,12 @@ const Layout: React.FC<LayoutProps> = ({
                   icon={LayoutDashboard} 
                   active={studentActiveTab === 'Dashboard'} 
                   onClick={() => onStudentNavigate('Dashboard')} 
+                />
+                 <NavItem 
+                  label="Apply Leave" 
+                  icon={Calendar} 
+                  active={studentActiveTab === 'Leave'} 
+                  onClick={() => onStudentNavigate('Leave')}
                 />
                 <NavItem 
                   label="Upload Documents" 

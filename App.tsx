@@ -12,8 +12,8 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<Role | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
   const [hodSelectedYear, setHodSelectedYear] = useState<number | null>(null); // Default to Overview (null)
-  const [studentActiveTab, setStudentActiveTab] = useState<'Dashboard' | 'Upload' | 'Leaderboard'>('Dashboard');
-  const [staffActiveTab, setStaffActiveTab] = useState<'MARKS' | 'ATTENDANCE' | 'VERIFICATION'>('MARKS');
+  const [studentActiveTab, setStudentActiveTab] = useState<'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave'>('Dashboard');
+  const [staffActiveTab, setStaffActiveTab] = useState<'MARKS' | 'ATTENDANCE' | 'VERIFICATION' | 'LEAVE'>('MARKS');
 
   const handleLogin = (role: Role, email: string) => {
     setUserRole(role);

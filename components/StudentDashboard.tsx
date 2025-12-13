@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, TrendingUp, Calendar, Trophy, Medal, Star, BookOpen } from 'lucide-react';
+import { Upload, FileText, TrendingUp, Calendar, Trophy, Medal, Star, BookOpen, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '../services/api';
-import { Achievement, AchievementCategory, LeaderboardEntry, StudentSubjectMark } from '../types';
+import { Achievement, AchievementCategory, LeaderboardEntry, StudentSubjectMark, LeaveApplication } from '../types';
 
 interface StudentDashboardProps {
   currentUserEmail: string;
-  activeTab?: 'Dashboard' | 'Upload' | 'Leaderboard';
-  onTabChange?: (tab: 'Dashboard' | 'Upload' | 'Leaderboard') => void;
+  activeTab?: 'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave';
+  onTabChange?: (tab: 'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave') => void;
 }
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, activeTab: propsActiveTab, onTabChange }) => {
-  const [internalActiveTab, setInternalActiveTab] = useState<'Dashboard' | 'Upload' | 'Leaderboard'>('Dashboard');
+  const [internalActiveTab, setInternalActiveTab] = useState<'Dashboard' | 'Upload' | 'Leaderboard' | 'Leave'>('Dashboard');
   const activeTab = propsActiveTab || internalActiveTab;
   const setActiveTab = onTabChange || setInternalActiveTab;
 
@@ -25,6 +25,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, a
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Leave State
+  const [leaveHistory, setLeaveHistory] = useState<LeaveApplication[]>([]);
+  const [leaveForm, setLeaveForm] = useState({ date: '', reason: '' });
 
   useEffect(() => {
     const init = async () => {
@@ -43,6 +47,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, a
         const achs = await api.getStudentAchievements(currentUserEmail);
         setAchievements(achs);
 
+        const leaves = await api.getStudentLeaves(currentUserEmail);
+        setLeaveHistory(leaves);
+
         if (data && data.year) {
             const lb = await api.getLeaderboard(data.year);
             setLeaderboard(lb);
@@ -60,6 +67,28 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, a
       alert('Uploaded! Pending approval.');
       setUploadForm({ category_id: '', title: '', description: '', date: '' });
       setUploadedFile(null);
+  };
+
+  const handleLeaveSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!studentData) return;
+      
+      const success = await api.applyLeave({
+          studentId: studentData.id,
+          studentName: studentData.name,
+          rollNo: studentData.rollNo,
+          leaveDate: leaveForm.date,
+          reason: leaveForm.reason
+      });
+
+      if (success) {
+          alert('Leave application submitted successfully.');
+          setLeaveForm({ date: '', reason: '' });
+          const updated = await api.getStudentLeaves(currentUserEmail);
+          setLeaveHistory(updated);
+      } else {
+          alert('Failed to submit application.');
+      }
   };
 
   if (loading) return <div className="p-12 text-center text-gray-400">Loading...</div>;
@@ -262,6 +291,100 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ currentUserEmail, a
                           Submit for Verification
                       </button>
                   </form>
+              </div>
+          </div>
+      )}
+
+      {activeTab === 'Leave' && (
+          <div className="max-w-4xl mx-auto space-y-8">
+              {/* Leave Form */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+                  <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900">Apply for Leave</h2>
+                      <p className="text-sm text-gray-500">Submit a leave application for approval.</p>
+                  </div>
+                  <form onSubmit={handleLeaveSubmit} className="space-y-6">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Leave Date</label>
+                          <div className="relative">
+                               <input 
+                                  type="date" 
+                                  required
+                                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                  value={leaveForm.date}
+                                  onChange={e => setLeaveForm({...leaveForm, date: e.target.value})}
+                              />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                          <textarea 
+                              required
+                              rows={4}
+                              placeholder="Describe why you need leave..."
+                              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500 focus:bg-white transition-all"
+                              value={leaveForm.reason}
+                              onChange={e => setLeaveForm({...leaveForm, reason: e.target.value})}
+                          />
+                      </div>
+                      <button 
+                          type="submit" 
+                          className="w-full bg-blue-600 text-white py-3.5 rounded-lg font-bold hover:bg-blue-700 shadow-sm transition-colors"
+                      >
+                          Submit Application
+                      </button>
+                  </form>
+              </div>
+
+              {/* Leave History */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                      <h3 className="font-bold text-gray-900">Leave History</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                          <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+                              <tr>
+                                  <th className="px-6 py-4">Applied On</th>
+                                  <th className="px-6 py-4">Leave Date</th>
+                                  <th className="px-6 py-4">Reason</th>
+                                  <th className="px-6 py-4">Status</th>
+                              </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                              {leaveHistory.length > 0 ? (
+                                  leaveHistory.map((leave) => (
+                                      <tr key={leave.id} className="hover:bg-gray-50/50 transition-colors">
+                                          <td className="px-6 py-4 text-sm text-gray-500">{leave.appliedOn}</td>
+                                          <td className="px-6 py-4 font-medium text-gray-900">{leave.leaveDate}</td>
+                                          <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{leave.reason}</td>
+                                          <td className="px-6 py-4">
+                                              {leave.status === 'Pending' && (
+                                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
+                                                      <Clock className="w-3.5 h-3.5" /> Pending
+                                                  </span>
+                                              )}
+                                              {leave.status === 'Approved' && (
+                                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                                      <CheckCircle className="w-3.5 h-3.5" /> Approved
+                                                  </span>
+                                              )}
+                                              {leave.status === 'Rejected' && (
+                                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                                      <XCircle className="w-3.5 h-3.5" /> Rejected
+                                                  </span>
+                                              )}
+                                          </td>
+                                      </tr>
+                                  ))
+                              ) : (
+                                  <tr>
+                                      <td colSpan={4} className="px-6 py-8 text-center text-gray-400 italic">No leave applications found.</td>
+                                  </tr>
+                              )}
+                          </tbody>
+                      </table>
+                  </div>
               </div>
           </div>
       )}

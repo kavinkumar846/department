@@ -1,7 +1,7 @@
 
 import { supabase } from '../lib/supabase';
-import { User, Student, Certificate, YearlyStats, Role, Achievement, AchievementCategory, LeaderboardEntry, Subject, StudentSubjectMark } from '../types';
-import { mockAchievements as initialMockAchievements, achievementCategories, mockLeaderboard, initialUsers, initialStudents, initialCertificates, mockSubjects, mockMarks } from './mockData';
+import { User, Student, Certificate, YearlyStats, Role, Achievement, AchievementCategory, LeaderboardEntry, Subject, StudentSubjectMark, LeaveApplication } from '../types';
+import { mockAchievements as initialMockAchievements, achievementCategories, mockLeaderboard, initialUsers, initialStudents, initialCertificates, mockSubjects, mockMarks, mockLeaves } from './mockData';
 
 // --- In-Memory State for Mock Session ---
 let localUsers = [...initialUsers];
@@ -10,6 +10,7 @@ let localCertificates = [...initialCertificates];
 let localAchievements = [...initialMockAchievements];
 let localSubjects = [...mockSubjects];
 let localMarks = [...mockMarks];
+let localLeaves = [...mockLeaves];
 let localSettings = {
   logoUrl: null as string | null,
   institutionName: 'Dr. N.G.P. INSTITUTE OF TECHNOLOGY'
@@ -259,6 +260,51 @@ export const api = {
     } catch (error) {
       return null; 
     }
+  },
+
+  // --- Leave System APIs ---
+
+  async applyLeave(leaveData: Partial<LeaveApplication>): Promise<boolean> {
+      try {
+          const newLeave: LeaveApplication = {
+              id: Date.now(),
+              studentId: leaveData.studentId || 0,
+              studentName: leaveData.studentName || 'Unknown',
+              rollNo: leaveData.rollNo || 'N/A',
+              leaveDate: leaveData.leaveDate || '',
+              reason: leaveData.reason || '',
+              status: 'Pending',
+              appliedOn: new Date().toISOString().split('T')[0]
+          };
+          localLeaves = [newLeave, ...localLeaves];
+          return true;
+      } catch {
+          return false;
+      }
+  },
+
+  async getStudentLeaves(email: string): Promise<LeaveApplication[]> {
+      const student = await this.getStudentProfile(email);
+      if (!student) return [];
+      return localLeaves.filter(l => l.studentId === student.id);
+  },
+
+  async getPendingLeaves(year?: string): Promise<LeaveApplication[]> {
+      let pending = localLeaves.filter(l => l.status === 'Pending');
+      if (year) {
+          const validStudentIds = localStudents.filter(s => s.year === year).map(s => s.id);
+          pending = pending.filter(l => validStudentIds.includes(l.studentId));
+      }
+      return pending;
+  },
+
+  async updateLeaveStatus(id: number, status: 'Approved' | 'Rejected'): Promise<boolean> {
+      try {
+          localLeaves = localLeaves.map(l => l.id === id ? { ...l, status } : l);
+          return true;
+      } catch {
+          return false;
+      }
   },
 
   // --- Achievement System APIs ---

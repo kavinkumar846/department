@@ -1,5 +1,5 @@
 
-import { User, Student, Certificate, YearlyStats, AchievementCategory, Achievement, LeaderboardEntry, Subject, StudentSubjectMark } from '../types';
+import { User, Student, Certificate, YearlyStats, AchievementCategory, Achievement, LeaderboardEntry, Subject, StudentSubjectMark, LeaveApplication } from '../types';
 
 export const generateMockData = (year: number): YearlyStats => {
   const baseData: Record<number, YearlyStats> = {
@@ -109,6 +109,19 @@ export const initialCertificates: Certificate[] = [
   { id: 1, studentName: 'Arun Kumar', type: 'Internship', company: 'TCS', status: 'Pending', uploadDate: '2024-12-01' },
   { id: 2, studentName: 'Sneha Reddy', type: 'Placement', company: 'Infosys', status: 'Pending', uploadDate: '2024-12-02' },
   { id: 3, studentName: 'Rahul Verma', type: 'Internship', company: 'Wipro', status: 'Approved', uploadDate: '2024-11-28' }
+];
+
+export const mockLeaves: LeaveApplication[] = [
+  {
+    id: 1,
+    studentId: 1,
+    studentName: 'Arun Kumar',
+    rollNo: 'CS101',
+    leaveDate: '2025-06-10',
+    reason: 'Sister wedding',
+    status: 'Pending',
+    appliedOn: '2025-06-01'
+  }
 ];
 
 // --- Achievement System Mock Data ---

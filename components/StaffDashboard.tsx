@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
-import { Student, Certificate, Achievement, LeaderboardEntry, Subject, StudentSubjectMark, AchievementCategory } from '../types';
+import { Student, Certificate, Achievement, LeaderboardEntry, Subject, StudentSubjectMark, AchievementCategory, LeaveApplication } from '../types';
 import { Save, Upload, Download, Search, CheckCircle, ArrowLeft, Users, BookOpen, Clock, AlertCircle, FileSpreadsheet, ChevronRight, GraduationCap, Settings, Plus, Trash2, X, Briefcase, Trophy, ArrowRight, BarChart2, FileText, ExternalLink, Calendar, Award } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface StaffDashboardProps {
   currentUserEmail: string;
-  activeTab?: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION';
-  onTabChange?: (tab: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION') => void;
+  activeTab?: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION' | 'LEAVE';
+  onTabChange?: (tab: 'MARKS' | 'ATTENDANCE' | 'VERIFICATION' | 'LEAVE') => void;
 }
 
-type ViewState = 'YEAR_SELECT' | 'SUBJECT_SELECT' | 'SUBJECT_DETAILS' | 'ATTENDANCE_YEAR_SELECT' | 'ATTENDANCE_DETAILS' | 'VERIFICATION' | 'LEADERBOARD';
+type ViewState = 'YEAR_SELECT' | 'SUBJECT_SELECT' | 'SUBJECT_DETAILS' | 'ATTENDANCE_YEAR_SELECT' | 'ATTENDANCE_DETAILS' | 'VERIFICATION' | 'LEADERBOARD' | 'LEAVE_YEAR_SELECT' | 'LEAVE_REQUESTS';
 
 const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activeTab, onTabChange }) => {
   const [currentView, setCurrentView] = useState<ViewState>('YEAR_SELECT');
@@ -33,6 +33,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardType, setLeaderboardType] = useState<'YEAR' | 'SUBJECT'>('YEAR'); // Track context
   const [leaderboardMetric, setLeaderboardMetric] = useState<'ACADEMIC' | 'ACHIEVEMENTS'>('ACADEMIC');
+  const [pendingLeaves, setPendingLeaves] = useState<LeaveApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attendanceFileInputRef = useRef<HTMLInputElement>(null);
@@ -43,8 +44,10 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
       setCurrentView('VERIFICATION');
     } else if (activeTab === 'ATTENDANCE') {
       setCurrentView('ATTENDANCE_YEAR_SELECT');
+    } else if (activeTab === 'LEAVE') {
+      setCurrentView('LEAVE_YEAR_SELECT');
     } else if (activeTab === 'MARKS') {
-       if (currentView === 'VERIFICATION' || currentView.startsWith('ATTENDANCE')) {
+       if (currentView === 'VERIFICATION' || currentView.startsWith('ATTENDANCE') || currentView.startsWith('LEAVE')) {
           setCurrentView('YEAR_SELECT');
        }
     }
@@ -102,12 +105,19 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
     }
   }, [selectedYear, currentView]);
 
-  // Re-fetch leaderboard when metric changes
+  // Re-fetch leaderboard when metric changes and View specific data fetching
   useEffect(() => {
       if (currentView === 'LEADERBOARD' && leaderboardType === 'YEAR') {
           loadLeaderboard();
       }
-  }, [leaderboardMetric]);
+      if (currentView === 'LEAVE_REQUESTS') {
+          const fetchLeaves = async () => {
+              const leaves = await api.getPendingLeaves(selectedYear || undefined);
+              setPendingLeaves(leaves);
+          };
+          fetchLeaves();
+      }
+  }, [leaderboardMetric, currentView, selectedYear]);
 
   // Search Filter (Marks)
   useEffect(() => {
@@ -130,6 +140,11 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
   const handleAttendanceYearSelect = (year: string) => {
     setSelectedYear(year);
     setCurrentView('ATTENDANCE_DETAILS');
+  };
+
+  const handleLeaveYearSelect = (year: string) => {
+    setSelectedYear(year);
+    setCurrentView('LEAVE_REQUESTS');
   };
 
   const handleSubjectSelect = (subject: Subject) => {
@@ -250,6 +265,11 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
   const verifyAchievement = async (id: number, status: 'approved' | 'rejected', points: number) => {
       await api.verifyAchievement(id, status, points);
       setPendingAchievements(pendingAchievements.filter(a => a.id !== id));
+  };
+
+  const handleLeaveAction = async (id: number, status: 'Approved' | 'Rejected') => {
+      await api.updateLeaveStatus(id, status);
+      setPendingLeaves(prev => prev.filter(l => l.id !== id));
   };
 
   const loadLeaderboard = async () => {
@@ -380,6 +400,78 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
 
   if (currentView === 'ATTENDANCE_YEAR_SELECT') {
       return renderYearGrid(handleAttendanceYearSelect, 'Update student attendance', 'Select an academic year to update attendance records.', Calendar);
+  }
+
+  if (currentView === 'LEAVE_YEAR_SELECT') {
+      return renderYearGrid(handleLeaveYearSelect, 'Manage Leave Requests', 'Select an academic year to view and approve leave applications.', Clock);
+  }
+
+  if (currentView === 'LEAVE_REQUESTS') {
+      return (
+          <div className="space-y-6 animate-in fade-in">
+              <div className="flex items-center gap-4">
+                  <button 
+                      onClick={() => setCurrentView('LEAVE_YEAR_SELECT')} 
+                      className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                      <ArrowLeft className="w-5 h-5 text-gray-600" />
+                  </button>
+                  <h1 className="text-2xl font-bold text-gray-900">Year {selectedYear} Leave Requests</h1>
+              </div>
+
+              {pendingLeaves.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-gray-100 border-dashed">
+                      <Clock className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                      <p className="text-gray-500 font-medium">No pending leave requests for Year {selectedYear}.</p>
+                  </div>
+              ) : (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <table className="w-full text-left">
+                          <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+                              <tr>
+                                  <th className="px-6 py-4">Student</th>
+                                  <th className="px-6 py-4">Leave Date</th>
+                                  <th className="px-6 py-4">Reason</th>
+                                  <th className="px-6 py-4">Applied On</th>
+                                  <th className="px-6 py-4 text-center">Actions</th>
+                              </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                              {pendingLeaves.map((leave) => (
+                                  <tr key={leave.id} className="hover:bg-gray-50/50">
+                                      <td className="px-6 py-4">
+                                          <div>
+                                              <p className="font-semibold text-gray-900">{leave.studentName}</p>
+                                              <p className="text-xs text-gray-500">{leave.rollNo}</p>
+                                          </div>
+                                      </td>
+                                      <td className="px-6 py-4 font-medium text-gray-900">{leave.leaveDate}</td>
+                                      <td className="px-6 py-4 text-gray-600">{leave.reason}</td>
+                                      <td className="px-6 py-4 text-sm text-gray-500">{leave.appliedOn}</td>
+                                      <td className="px-6 py-4 text-center">
+                                          <div className="flex items-center justify-center gap-2">
+                                              <button 
+                                                  onClick={() => handleLeaveAction(leave.id, 'Approved')}
+                                                  className="px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-xs font-bold hover:bg-green-200 transition-colors"
+                                              >
+                                                  Approve
+                                              </button>
+                                              <button 
+                                                  onClick={() => handleLeaveAction(leave.id, 'Rejected')}
+                                                  className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-xs font-bold hover:bg-red-200 transition-colors"
+                                              >
+                                                  Reject
+                                              </button>
+                                          </div>
+                                      </td>
+                                  </tr>
+                              ))}
+                          </tbody>
+                      </table>
+                  </div>
+              )}
+          </div>
+      );
   }
 
   if (currentView === 'ATTENDANCE_DETAILS') {
@@ -891,7 +983,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ currentUserEmail, activ
                                 <th className="px-6 py-4">Student</th>
                                 <th className="px-6 py-4 text-right">
                                     {leaderboardMetric === 'ACADEMIC' ? 'Total Marks' : 'Total Points'}
-                                </th>
+                                th>
                                 <th className="px-6 py-4 text-center">Badges</th>
                             </tr>
                         </thead>

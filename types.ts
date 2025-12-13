@@ -55,6 +55,17 @@ export interface Certificate {
   uploadDate: string;
 }
 
+export interface LeaveApplication {
+  id: number;
+  studentId: number;
+  studentName: string;
+  rollNo: string;
+  leaveDate: string;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  appliedOn: string;
+}
+
 export interface YearlyStats {
   totalStudents: number;
   internal1: { pass: number; fail: number };
